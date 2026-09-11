@@ -1,0 +1,13 @@
+{
+    "name": "ai-immigration-assistant-student-crm",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "postinstall": "npm install --prefix backend && npm install --prefix frontend",
+        "build": "npm run build --prefix frontend",
+        "lint": "npm run lint --prefix frontend",
+        "prestart": "npm run build",
+        "start": "npm start --prefix backend",
+        "dev": "npm run dev --prefix backend"
+    }
+}
