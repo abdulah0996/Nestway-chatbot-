@@ -5,7 +5,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const { connectDB, getDBStatus } = require('./config/database');
+const { connectDB, getDBStatus, getLastDBError } = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
 const { seedDatabase } = require('./utils/seedData');
 
@@ -70,9 +70,11 @@ app.use('/api/counselors', counselorRoutes);
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {
-    res.status(getDBStatus() ? 200 : 503).json({
-        status: getDBStatus() ? 'OK' : 'UNAVAILABLE',
-        database: getDBStatus() ? 'connected' : 'disconnected',
+    const databaseConnected = getDBStatus();
+    res.status(databaseConnected ? 200 : 503).json({
+        status: databaseConnected ? 'OK' : 'UNAVAILABLE',
+        database: databaseConnected ? 'connected' : 'disconnected',
+        ...(!databaseConnected && getLastDBError() ? { databaseError: getLastDBError() } : {}),
         project: 'AI Immigration Assistant & Student CRM',
         timestamp: new Date().toISOString()
     });

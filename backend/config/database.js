@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 let isConnected = false;
+let lastConnectionError = null;
 
 const redactMongoCredentials = (message) => String(message || 'Unknown MongoDB connection error')
     .replace(/mongodb(\+srv)?:\/\/[^@\s]+@/gi, 'mongodb$1://[redacted]@');
@@ -18,11 +19,17 @@ const connectDB = async () => {
         });
 
         isConnected = true;
+        lastConnectionError = null;
         console.log(`[Database] MongoDB Connected: ${conn.connection.host}`);
         return true;
     } catch (error) {
         isConnected = false;
         const safeMessage = redactMongoCredentials(error.message);
+        lastConnectionError = {
+            name: error.name || 'Error',
+            code: error.code || null,
+            message: safeMessage.slice(0, 500)
+        };
         console.error(`[Database] MongoDB connection failed (${error.name || 'Error'}): ${safeMessage}`);
         console.error('[Database] Database unavailable. API requires an active MongoDB connection.');
         return false;
@@ -33,6 +40,8 @@ const getDBStatus = () => {
     return Boolean(mongoose.connection && mongoose.connection.readyState === 1);
 };
 
+const getLastDBError = () => lastConnectionError;
+
 mongoose.connection.on('connected', () => {
     isConnected = true;
 });
@@ -41,4 +50,4 @@ mongoose.connection.on('disconnected', () => {
     isConnected = false;
 });
 
-module.exports = { connectDB, getDBStatus };
+module.exports = { connectDB, getDBStatus, getLastDBError };
