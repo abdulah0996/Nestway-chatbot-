@@ -2,11 +2,19 @@ const mongoose = require('mongoose');
 
 let isConnected = false;
 
+const redactMongoCredentials = (message) => String(message || 'Unknown MongoDB connection error')
+    .replace(/mongodb(\+srv)?:\/\/[^@\s]+@/gi, 'mongodb$1://[redacted]@');
+
 const connectDB = async () => {
     try {
         const connStr = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ai_immigration_crm_db';
         const conn = await mongoose.connect(connStr, {
-            serverSelectionTimeoutMS: 2500
+            // Hostinger runs Node 22, where DNS may prefer IPv6 even when the
+            // container has no working IPv6 route to MongoDB Atlas.
+            family: 4,
+            serverSelectionTimeoutMS: 15000,
+            connectTimeoutMS: 15000,
+            socketTimeoutMS: 45000
         });
 
         isConnected = true;
@@ -14,8 +22,9 @@ const connectDB = async () => {
         return true;
     } catch (error) {
         isConnected = false;
-        console.warn(`[Database] MongoDB Connection Note: ${error.message}`);
-        console.warn('[Database] Database unavailable. API requires an active MongoDB connection.');
+        const safeMessage = redactMongoCredentials(error.message);
+        console.error(`[Database] MongoDB connection failed (${error.name || 'Error'}): ${safeMessage}`);
+        console.error('[Database] Database unavailable. API requires an active MongoDB connection.');
         return false;
     }
 };
