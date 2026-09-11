@@ -13,6 +13,27 @@ const seedDatabase = async () => {
 
         const userCount = await User.countDocuments();
         if (userCount === 0) {
+            const demoDataEnabled = process.env.NODE_ENV !== 'production' || process.env.SEED_DEMO_DATA === 'true';
+
+            if (!demoDataEnabled) {
+                const adminEmail = String(process.env.INITIAL_ADMIN_EMAIL || '').trim().toLowerCase();
+                const adminPassword = String(process.env.INITIAL_ADMIN_PASSWORD || '');
+                const adminName = String(process.env.INITIAL_ADMIN_NAME || 'Nestway Admin').trim();
+
+                if (!adminEmail || !adminEmail.includes('@') || adminPassword.length < 12) {
+                    throw new Error('An empty production database requires INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD (minimum 12 characters).');
+                }
+
+                await User.create({
+                    name: adminName,
+                    email: adminEmail,
+                    password: adminPassword,
+                    role: 'ADMIN'
+                });
+                console.log('[Seed] Initial production admin created.');
+                return;
+            }
+
             console.log('🌱 Seeding initial users...');
 
             const admin = await User.create({
@@ -234,6 +255,9 @@ const seedDatabase = async () => {
         }
     } catch (error) {
         console.error('Note seeding database:', error.message);
+        if (process.env.NODE_ENV === 'production') {
+            throw error;
+        }
     }
 };
 

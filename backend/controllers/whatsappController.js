@@ -1,4 +1,5 @@
 const { verifyWebhook, parseIncomingMessage, sendTextMessage, sendChoiceMessage } = require('../services/whatsappService');
+const crypto = require('crypto');
 const ChatConversation = require('../models/ChatConversation');
 const Lead = require('../models/Lead');
 const {
@@ -66,6 +67,22 @@ const verifyWebhookChallenge = (req, res) => {
 // @route   POST /api/whatsapp/webhook
 // @access  Public
 const handleIncomingWebhook = async (req, res) => {
+    const appSecret = process.env.META_APP_SECRET;
+    const suppliedSignature = req.get('x-hub-signature-256') || '';
+    const expectedSignature = appSecret && req.rawBody
+        ? `sha256=${crypto.createHmac('sha256', appSecret).update(req.rawBody).digest('hex')}`
+        : '';
+    const validSignature = Boolean(
+        expectedSignature &&
+        suppliedSignature.length === expectedSignature.length &&
+        crypto.timingSafeEqual(Buffer.from(suppliedSignature), Buffer.from(expectedSignature))
+    );
+
+    if (!validSignature) {
+        console.warn('[WhatsApp Webhook] Rejected event with an invalid signature');
+        return res.status(appSecret ? 401 : 503).send('Invalid webhook signature');
+    }
+
     // Immediately acknowledge Meta server
     res.status(200).send('EVENT_RECEIVED');
 

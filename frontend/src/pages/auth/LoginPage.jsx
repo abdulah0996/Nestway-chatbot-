@@ -6,6 +6,7 @@ import { GraduationCap, LogIn, Lock, Mail, ShieldAlert, Sparkles, CheckCircle2, 
 import Navbar from '../../components/common/Navbar';
 
 export default function LoginPage() {
+  const demoLoginsEnabled = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_LOGINS === 'true';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -150,7 +151,7 @@ export default function LoginPage() {
           </form>
 
           {/* Quick Demo Login Credentials Buttons */}
-          <div className="pt-4 border-t border-slate-200/70 space-y-2.5">
+          {demoLoginsEnabled && <div className="pt-4 border-t border-slate-200/70 space-y-2.5">
             <p
               className="text-[10px] font-extrabold uppercase tracking-wider text-center flex items-center justify-center"
               style={{ color: '#64748B' }}
@@ -181,7 +182,7 @@ export default function LoginPage() {
                 Student
               </button>
             </div>
-          </div>
+          </div>}
 
           <div className="text-center text-xs font-medium" style={{ color: '#64748B' }}>
             Don't have an enterprise account?{' '}

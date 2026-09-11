@@ -13,18 +13,21 @@ const {
     closeConversation,
     getServices
 } = require('../controllers/chatbotController');
+const { protect, restrictTo } = require('../middleware/authMiddleware');
+
+const staffOnly = [protect, restrictTo('ADMIN', 'COUNSELOR')];
 
 router.post('/init', initChatSession);
 router.post('/message', handleChatMessage);
-router.post('/counselor/message', sendCounselorReply);
+router.post('/counselor/message', ...staffOnly, sendCounselorReply);
 router.get('/session/:sessionId', getChatSession);
-router.get('/history', getConversationsHistory);
-router.get('/conversations', getConversationsHistory);
-router.post('/takeover', takeoverChat);
-router.post('/resume-ai', resumeAi);
-router.post('/assign', assignCounselorToChat);
-router.post('/notes', addChatNote);
-router.post('/close', closeConversation);
+router.get('/history', ...staffOnly, getConversationsHistory);
+router.get('/conversations', ...staffOnly, getConversationsHistory);
+router.post('/takeover', ...staffOnly, takeoverChat);
+router.post('/resume-ai', ...staffOnly, resumeAi);
+router.post('/assign', ...staffOnly, assignCounselorToChat);
+router.post('/notes', ...staffOnly, addChatNote);
+router.post('/close', ...staffOnly, closeConversation);
 router.get('/services', getServices);
 
 module.exports = router;

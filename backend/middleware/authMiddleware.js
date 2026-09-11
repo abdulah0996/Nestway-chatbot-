@@ -29,30 +29,10 @@ const protect = async (req, res, next) => {
             user = await User.findById(userId).select('-password');
         }
 
-        // 2. Secondary lookup: by decoded email if available
+        // Secondary lookup allows tokens issued before a user ID migration, but only
+        // for the exact email carried by the signed token.
         if (!user && decoded.email) {
             user = await User.findOne({ email: decoded.email.toLowerCase() }).select('-password');
-        }
-
-        // 3. Resilient role fallback: If token belongs to ADMIN or COUNSELOR but user id changed (e.g. re-seed)
-        if (!user && (decoded.role === 'ADMIN' || decoded.role === 'COUNSELOR')) {
-            user = await User.findOne({ role: decoded.role, active: true }).select('-password') ||
-                   await User.findOne({ email: 'admin@immigration.com', active: true }).select('-password');
-        }
-
-        // 4. Fresh database fallback: If users collection is completely empty, seed demo users and re-fetch
-        if (!user) {
-            const userCount = await User.countDocuments();
-            if (userCount === 0) {
-                try {
-                    const { seedDatabase } = require('../utils/seedData');
-                    await seedDatabase();
-                    user = await User.findOne({ role: decoded.role || 'ADMIN', active: true }).select('-password') ||
-                           await User.findOne({ email: 'admin@immigration.com', active: true }).select('-password');
-                } catch (sErr) {
-                    console.error('[AuthMiddleware] Auto-seed error:', sErr);
-                }
-            }
         }
 
         if (!user || !user.active) {

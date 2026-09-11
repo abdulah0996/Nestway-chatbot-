@@ -10,9 +10,11 @@ If port 5000 is occupied, run `$env:PORT = '5001'` in PowerShell before starting
 then open http://localhost:5001. Login is at `/login`, admin workspace at
 `/admin/dashboard`, and student workspace at `/student/chat`.
 
-An empty database seeds development accounts: `admin@immigration.com` / `admin123`,
-`counselor@immigration.com` / `counselor123`, and `student@immigration.com` / `student123`.
-Public registration creates students only.
+An empty development database seeds three demo accounts. Production never creates those
+accounts unless `SEED_DEMO_DATA=true` is explicitly configured. A new production database
+instead requires private `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` environment
+variables; the password must contain at least 12 characters. Public registration creates
+students only.
 
 Run `npm.cmd run lint` and `npm.cmd run build` for frontend checks.
 For development run `npm.cmd run dev` and, in another terminal,
