@@ -20,7 +20,8 @@ Run `npm.cmd run lint` and `npm.cmd run build` for frontend checks.
 For development run `npm.cmd run dev` and, in another terminal,
 `npm.cmd run dev --prefix frontend`. Vite uses port 3000 and proxies to backend port 5000.
 Backend workflow scripts require port 5000 and create test data; use a development database.
-The server waits for MongoDB before listening; `/api/health` reports database readiness.
+The server listens even while MongoDB is temporarily unavailable, reports `503` from
+`/api/health`, and retries the database connection every 30 seconds.
 
 ## Archived documentation
 

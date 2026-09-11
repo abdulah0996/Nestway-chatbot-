@@ -96,14 +96,49 @@ app.get('*', (req, res) => {
 app.use(errorHandler);
 
 // Start Express Server
+async function initializeDatabase() {
+    if (!getDBStatus() && !await connectDB()) {
+        return false;
+    }
+    await seedDatabase();
+    return true;
+}
+
+function retryDatabaseConnection() {
+    let retryInProgress = false;
+    const retryTimer = setInterval(async () => {
+        if (retryInProgress) return;
+        retryInProgress = true;
+        try {
+            if (await initializeDatabase()) {
+                console.log('[Database] Connection restored; stopping retry loop.');
+                clearInterval(retryTimer);
+            }
+        } catch (error) {
+            console.warn(`[Database] Retry failed: ${error.message}`);
+        } finally {
+            retryInProgress = false;
+        }
+    }, 30000);
+    retryTimer.unref();
+}
+
 async function startServer() {
     if (!process.env.JWT_SECRET) {
         throw new Error('Cannot start without JWT_SECRET. Configure a strong production secret.');
     }
-    if (!await connectDB()) {
-        throw new Error('Cannot start without MongoDB. Check MONGODB_URI and start your database.');
+
+    try {
+        if (!await initializeDatabase()) {
+            console.warn('[Database] Starting web server in degraded mode; retrying MongoDB every 30 seconds.');
+            retryDatabaseConnection();
+        }
+    } catch (error) {
+        if (getDBStatus()) throw error;
+        console.warn(`[Database] Startup initialization failed: ${error.message}`);
+        retryDatabaseConnection();
     }
-    await seedDatabase();
+
     return app.listen(PORT, () => {
     console.log(`=======================================================`);
     console.log(`  AI IMMIGRATION ASSISTANT & STUDENT CRM BACKEND SERVER `);
@@ -127,3 +162,4 @@ if (require.main === module) {
 }
 
 module.exports = app;
+module.exports.startServer = startServer;
