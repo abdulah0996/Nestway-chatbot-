@@ -2,12 +2,19 @@
     "name": "ai-immigration-assistant-student-crm",
     "version": "1.0.0",
     "private": true,
+    "main": "backend/server.js",
+    "engines": {
+        "node": ">=20 <25"
+    },
     "scripts": {
-        "postinstall": "npm install --prefix backend && npm install --prefix frontend",
+        "postinstall": "npm ci --omit=dev --prefix backend && npm ci --include=dev --prefix frontend",
         "build": "npm run build --prefix frontend",
         "lint": "npm run lint --prefix frontend",
         "prestart": "npm run build",
         "start": "npm start --prefix backend",
         "dev": "npm run dev --prefix backend"
+    },
+    "dependencies": {
+        "express": "^4.19.2"
     }
 }
