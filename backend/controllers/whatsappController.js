@@ -49,6 +49,17 @@ const isGreetingText = (txt) => {
 // @route   GET /api/whatsapp/webhook
 // @access  Public
 const verifyWebhookChallenge = (req, res) => {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    if (!mode && !token && !challenge) {
+        return res.status(200).json({
+            status: 'ready',
+            message: 'Nestway WhatsApp webhook endpoint is live'
+        });
+    }
+
     const configuredToken = process.env.META_VERIFY_TOKEN;
     if (!configuredToken) {
         return res.status(503).send('WhatsApp webhook verification is not configured');
