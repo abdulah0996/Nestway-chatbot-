@@ -130,18 +130,7 @@ async function startServer() {
         throw new Error('Cannot start without JWT_SECRET. Configure a strong production secret.');
     }
 
-    try {
-        if (!await initializeDatabase()) {
-            console.warn('[Database] Starting web server in degraded mode; retrying MongoDB every 30 seconds.');
-            retryDatabaseConnection();
-        }
-    } catch (error) {
-        if (getDBStatus()) throw error;
-        console.warn(`[Database] Startup initialization failed: ${error.message}`);
-        retryDatabaseConnection();
-    }
-
-    return app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
     console.log(`=======================================================`);
     console.log(`  AI IMMIGRATION ASSISTANT & STUDENT CRM BACKEND SERVER `);
     console.log(`  Server running on http://localhost:${PORT}`);
@@ -154,6 +143,22 @@ async function startServer() {
             : error.message);
         require('mongoose').disconnect().finally(() => { process.exitCode = 1; });
     });
+
+    // Open the HTTP port immediately so managed hosts can complete their
+    // startup health check while Atlas DNS/TLS negotiation runs in parallel.
+    initializeDatabase()
+        .then((initialized) => {
+            if (!initialized) {
+                console.warn('[Database] Web server is in degraded mode; retrying MongoDB every 30 seconds.');
+                retryDatabaseConnection();
+            }
+        })
+        .catch((error) => {
+            console.error(`[Database] Startup initialization failed: ${error.message}`);
+            if (!getDBStatus()) retryDatabaseConnection();
+        });
+
+    return server;
 }
 
 if (require.main === module) {
