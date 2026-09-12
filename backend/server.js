@@ -82,7 +82,7 @@ app.get('/api/health', (req, res) => {
         database: databaseConnected ? 'connected' : 'disconnected',
         ...(!databaseConnected && getLastDBError() ? { databaseError: getLastDBError() } : {}),
         ...(!databaseConnected && getLastNetworkProbe() ? { databaseNetwork: getLastNetworkProbe() } : {}),
-        release: 'database-connectivity-20260912',
+        release: 'database-connectivity-a4e9933-ipv4',
         project: 'AI Immigration Assistant & Student CRM',
         timestamp: new Date().toISOString()
     });

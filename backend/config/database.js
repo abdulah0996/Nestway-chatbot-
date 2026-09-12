@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
 const net = require('net');
 
 let isConnected = false;
@@ -6,9 +7,28 @@ let lastConnectionError = null;
 let lastNetworkProbe = null;
 
 const ATLAS_PROBE_HOST = 'ac-ad2fdxd-shard-00-00.lnrg0ts.mongodb.net';
+const ATLAS_IPV4_BY_HOST = Object.freeze({
+    'ac-ad2fdxd-shard-00-00.lnrg0ts.mongodb.net': '159.41.188.48',
+    'ac-ad2fdxd-shard-00-01.lnrg0ts.mongodb.net': '159.41.188.73',
+    'ac-ad2fdxd-shard-00-02.lnrg0ts.mongodb.net': '159.41.188.60'
+});
+
+const atlasIpv4Lookup = (hostname, options, callback) => {
+    const address = ATLAS_IPV4_BY_HOST[String(hostname).toLowerCase()];
+    if (!address) return dns.lookup(hostname, options, callback);
+    if (options && typeof options === 'object' && options.all) {
+        return callback(null, [{ address, family: 4 }]);
+    }
+    return callback(null, address, 4);
+};
 
 const probeDatabaseNetwork = () => new Promise((resolve) => {
-    const socket = net.createConnection({ host: ATLAS_PROBE_HOST, port: 27017, family: 4 });
+    const socket = net.createConnection({
+        host: ATLAS_PROBE_HOST,
+        port: 27017,
+        family: 4,
+        lookup: atlasIpv4Lookup
+    });
     let settled = false;
     const finish = (result) => {
         if (settled) return;
@@ -58,6 +78,7 @@ const connectDB = async () => {
             // Hostinger runs Node 22, where DNS may prefer IPv6 even when the
             // container has no working IPv6 route to MongoDB Atlas.
             family: 4,
+            lookup: atlasIpv4Lookup,
             serverSelectionTimeoutMS: 15000,
             connectTimeoutMS: 15000,
             socketTimeoutMS: 45000
