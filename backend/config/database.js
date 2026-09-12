@@ -30,17 +30,18 @@ const probeDatabaseNetwork = () => new Promise((resolve) => {
         lookup: atlasIpv4Lookup
     });
     let settled = false;
+    let deadline;
     const finish = (result) => {
         if (settled) return;
         settled = true;
+        clearTimeout(deadline);
         lastNetworkProbe = { ...result, checkedAt: new Date().toISOString() };
         socket.destroy();
         resolve(lastNetworkProbe);
     };
 
-    socket.setTimeout(5000);
+    deadline = setTimeout(() => finish({ status: 'timeout' }), 5000);
     socket.once('connect', () => finish({ status: 'connected' }));
-    socket.once('timeout', () => finish({ status: 'timeout' }));
     socket.once('error', (error) => finish({ status: 'error', code: error.code || null }));
 });
 
