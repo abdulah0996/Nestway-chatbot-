@@ -6,9 +6,33 @@ let lastConnectionError = null;
 const redactMongoCredentials = (message) => String(message || 'Unknown MongoDB connection error')
     .replace(/mongodb(\+srv)?:\/\/[^@\s]+@/gi, 'mongodb$1://[redacted]@');
 
+const expandKnownAtlasSrvUri = (connectionString) => {
+    const match = String(connectionString).match(
+        /^mongodb\+srv:\/\/([^@]+)@cluster0\.lnrg0ts\.mongodb\.net\/([^?]*)(?:\?(.*))?$/i
+    );
+    if (!match) return connectionString;
+
+    const [, credentials, databaseName, existingQuery = ''] = match;
+    const params = new URLSearchParams(existingQuery);
+    params.set('tls', 'true');
+    params.set('replicaSet', 'atlas-121sis-shard-0');
+    params.set('authSource', 'admin');
+    params.set('retryWrites', 'true');
+    params.set('w', 'majority');
+
+    const hosts = [
+        'ac-ad2fdxd-shard-00-00.lnrg0ts.mongodb.net:27017',
+        'ac-ad2fdxd-shard-00-01.lnrg0ts.mongodb.net:27017',
+        'ac-ad2fdxd-shard-00-02.lnrg0ts.mongodb.net:27017'
+    ].join(',');
+
+    return `mongodb://${credentials}@${hosts}/${databaseName || 'ai_immigration_crm_db'}?${params.toString()}`;
+};
+
 const connectDB = async () => {
     try {
-        const connStr = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ai_immigration_crm_db';
+        const configuredUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ai_immigration_crm_db';
+        const connStr = expandKnownAtlasSrvUri(configuredUri);
         const conn = await mongoose.connect(connStr, {
             // Hostinger runs Node 22, where DNS may prefer IPv6 even when the
             // container has no working IPv6 route to MongoDB Atlas.
