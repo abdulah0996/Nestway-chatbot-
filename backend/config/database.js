@@ -30,8 +30,11 @@ const connectDB = async () => {
             code: error.code || null,
             message: safeMessage.slice(0, 500)
         };
-        console.error(`[Database] MongoDB connection failed (${error.name || 'Error'}): ${safeMessage}`);
-        console.error('[Database] Database unavailable. API requires an active MongoDB connection.');
+        console.error(JSON.stringify({
+            timestamp: new Date().toISOString(),
+            level: 'ERROR',
+            message: `[Database] MongoDB connection failed (${error.name || 'Error'}): ${safeMessage}`
+        }));
         return false;
     }
 };

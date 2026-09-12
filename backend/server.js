@@ -75,6 +75,7 @@ app.get('/api/health', (req, res) => {
         status: databaseConnected ? 'OK' : 'UNAVAILABLE',
         database: databaseConnected ? 'connected' : 'disconnected',
         ...(!databaseConnected && getLastDBError() ? { databaseError: getLastDBError() } : {}),
+        release: 'database-connectivity-20260912',
         project: 'AI Immigration Assistant & Student CRM',
         timestamp: new Date().toISOString()
     });
