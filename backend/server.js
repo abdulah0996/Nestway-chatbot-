@@ -75,14 +75,17 @@ app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/counselors', counselorRoutes);
 
 // Health Check Endpoint
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
     const databaseConnected = getDBStatus();
+    if (!databaseConnected && !getLastNetworkProbe()) {
+        await probeDatabaseNetwork();
+    }
     res.status(databaseConnected ? 200 : 503).json({
         status: databaseConnected ? 'OK' : 'UNAVAILABLE',
         database: databaseConnected ? 'connected' : 'disconnected',
         ...(!databaseConnected && getLastDBError() ? { databaseError: getLastDBError() } : {}),
         ...(!databaseConnected && getLastNetworkProbe() ? { databaseNetwork: getLastNetworkProbe() } : {}),
-        release: 'database-connectivity-hard-timeout',
+        release: 'database-connectivity-inline-probe',
         project: 'AI Immigration Assistant & Student CRM',
         timestamp: new Date().toISOString()
     });
