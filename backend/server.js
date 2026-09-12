@@ -5,7 +5,13 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const { connectDB, getDBStatus, getLastDBError } = require('./config/database');
+const {
+    connectDB,
+    getDBStatus,
+    getLastDBError,
+    probeDatabaseNetwork,
+    getLastNetworkProbe
+} = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
 const { seedDatabase } = require('./utils/seedData');
 
@@ -75,6 +81,7 @@ app.get('/api/health', (req, res) => {
         status: databaseConnected ? 'OK' : 'UNAVAILABLE',
         database: databaseConnected ? 'connected' : 'disconnected',
         ...(!databaseConnected && getLastDBError() ? { databaseError: getLastDBError() } : {}),
+        ...(!databaseConnected && getLastNetworkProbe() ? { databaseNetwork: getLastNetworkProbe() } : {}),
         release: 'database-connectivity-20260912',
         project: 'AI Immigration Assistant & Student CRM',
         timestamp: new Date().toISOString()
@@ -147,6 +154,7 @@ async function startServer() {
 
     // Open the HTTP port immediately so managed hosts can complete their
     // startup health check while Atlas DNS/TLS negotiation runs in parallel.
+    probeDatabaseNetwork().catch(() => null);
     initializeDatabase()
         .then((initialized) => {
             if (!initialized) {

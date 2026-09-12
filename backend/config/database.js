@@ -1,7 +1,28 @@
 const mongoose = require('mongoose');
+const net = require('net');
 
 let isConnected = false;
 let lastConnectionError = null;
+let lastNetworkProbe = null;
+
+const ATLAS_PROBE_HOST = 'ac-ad2fdxd-shard-00-00.lnrg0ts.mongodb.net';
+
+const probeDatabaseNetwork = () => new Promise((resolve) => {
+    const socket = net.createConnection({ host: ATLAS_PROBE_HOST, port: 27017, family: 4 });
+    let settled = false;
+    const finish = (result) => {
+        if (settled) return;
+        settled = true;
+        lastNetworkProbe = { ...result, checkedAt: new Date().toISOString() };
+        socket.destroy();
+        resolve(lastNetworkProbe);
+    };
+
+    socket.setTimeout(5000);
+    socket.once('connect', () => finish({ status: 'connected' }));
+    socket.once('timeout', () => finish({ status: 'timeout' }));
+    socket.once('error', (error) => finish({ status: 'error', code: error.code || null }));
+});
 
 const redactMongoCredentials = (message) => String(message || 'Unknown MongoDB connection error')
     .replace(/mongodb(\+srv)?:\/\/[^@\s]+@/gi, 'mongodb$1://[redacted]@');
@@ -68,6 +89,7 @@ const getDBStatus = () => {
 };
 
 const getLastDBError = () => lastConnectionError;
+const getLastNetworkProbe = () => lastNetworkProbe;
 
 mongoose.connection.on('connected', () => {
     isConnected = true;
@@ -77,4 +99,4 @@ mongoose.connection.on('disconnected', () => {
     isConnected = false;
 });
 
-module.exports = { connectDB, getDBStatus, getLastDBError };
+module.exports = { connectDB, getDBStatus, getLastDBError, probeDatabaseNetwork, getLastNetworkProbe };
